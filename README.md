@@ -46,177 +46,9 @@ If your computer assigns a different COM port, update the port name in the MATLA
 -MPU6050 support compatible with the MATLAB mpu6050 interface.
 -The I2C library enabled in the Arduino connection.
 
-The project uses the following MATLAB commands to establish communication:
-
-a = arduino('COM7', 'nano3', 'Libraries', 'I2C');
-
-fs = 100;
-
-imu = mpu6050(a, ...
-    'SampleRate', fs, ...
-    'OutputFormat', 'matrix');
-
-The requested sampling frequency is 100 Hz, corresponding to a nominal sampling interval of:
-
-[
-\Delta t = \frac{1}{f_s} = 0.01\ \text{s}
-]
-
-The actual acquisition and processing timing may vary depending on hardware communication and MATLAB execution overhead.
-
-5. Kalman Filter Description
-
-The MATLAB implementation uses a six-state discrete-time model:
-
-[
-\mathbf{x}_k =
-\begin{bmatrix}
-x_1 & x_2 & x_3 & v_1 & v_2 & v_3
-\end{bmatrix}^{T}
-]
-
-The first three states are position-like variables, while the last three are velocity-like variables.
-
-The state transition matrix is:
-
-[
-A =
-\begin{bmatrix}
-I_3 & \Delta t I_3 \
-0_3 & I_3
-\end{bmatrix}
-]
-
-The input matrix is:
-
-[
-B =
-\begin{bmatrix}
-0_3 \
-\Delta t I_3
-\end{bmatrix}
-]
-
-The measurement model is:
-
-[
-y_k = C\mathbf{x}_k + v_k
-]
-
-where:
-
-[
-C = \begin{bmatrix}1&1&1&0&0&0\end{bmatrix}
-]
-
-In the implementation, the measured scalar is constructed as the sum of the three accelerometer channels:
-
-[
-y_k = a_x + a_y + a_z
-]
-
-The predictor and filter use the configured process and measurement noise covariance matrices to update the state estimate and its uncertainty.
-
-Note: This is the project's implemented mathematical model. The three position-like states should not be interpreted as validated physical positions, because the measurement equation uses summed acceleration rather than direct position measurements. The current implementation is not a conventional, fully calibrated inertial navigation filter.
-
-6. Predictor and Filter Equations
-
-The state predictor is implemented as:
-
-[
-\hat{\mathbf{x}}_{k+1}^{-}
-= A\hat{\mathbf{x}}_k^{-}
-
-B\mathbf{u}_k
-
-K_k e_k
-]
-
-The measurement innovation is:
-
-[
-e_k = y_k - C\hat{\mathbf{x}}_k^{-}
-]
-
-The dynamic gain is calculated using the covariance matrices:
-
-[
-K_k =
-(AP_kC^T+V_{12})
-(CP_kC^T+V_2)^{-1}
-]
-
-The covariance update is:
-
-[
-P_{k+1} =
-AP_kA^T + V_1
-
-K_k(CP_kC^T+V_2)K_k^T
-]
-
-A separate filter gain is used to correct the current predicted state:
-
-[
-K_{0,k}=P_kC^T(CP_kC^T+V_2)^{-1}
-]
-
-[
-\hat{\mathbf{x}}_k^f =
-\hat{\mathbf{x}}k^- + K{0,k}e_k
-]
-
-The filtered scalar output is calculated as:
-
-[
-y_k^f=C\hat{\mathbf{x}}_k^f
-]
-
-The matrices (V_1), (V_2), and (V_{12}) define the configured uncertainty model. Their values should be validated against the actual sensor units, noise characteristics, and intended physical model before interpreting the results quantitatively.
-
-7. 3D Delta-Wing Visualization
-
-The MATLAB script creates a simplified 3D delta-wing aircraft using graphical objects and an hgtransform transformation.
-
-The orientation is estimated separately from the six-state Kalman filter using a complementary filter.
-
-The accelerometer provides a gravity-based reference for roll and pitch, while the gyroscope supplies angular-rate measurements.
-
-The complementary filter combines these sources:
-
-[
-\phi_k =
-\alpha(\phi_{k-1}+\omega_x\Delta t)
-+(1-\alpha)\phi_{\mathrm{acc}}
-]
-
-[
-\theta_k =
-\alpha(\theta_{k-1}+\omega_y\Delta t)
-+(1-\alpha)\theta_{\mathrm{acc}}
-]
-
-Yaw is obtained by integrating the gyroscope's vertical-axis angular rate.
-
-The rotation matrix is constructed using Z-Y-X Euler rotations:
-
-[
-R=R_z(\psi)R_y(\theta)R_x(\phi)
-]
-
-where:
-
-(\phi): roll angle.
-
-(\theta): pitch angle.
-
-(\psi): yaw angle.
-
-The 3D model is updated using the resulting rotation matrix.
-
 Limitations: The MPU6050 has no magnetometer, so yaw will drift over time. Accelerometer-based roll and pitch estimates are also affected by linear acceleration, sensor mounting orientation, and measurement noise. The current visualization estimates attitude only; it does not estimate the drone's translational position or reconstruct a physical flight trajectory.
 
-8. Running the Project
+5. Running the Project
 
 1. Connect the MPU6050 to the Arduino Nano according to the wiring table.
 2. Connect the Arduino Nano to the computer using USB.
@@ -229,7 +61,7 @@ Limitations: The MPU6050 has no magnetometer, so yaw will drift over time. Accel
 9. Move or rotate the sensor to observe the changes in the estimated orientation.
 10. Stop execution with Ctrl+C in the MATLAB Command Window.
 
-9. Troubleshooting
+6. Troubleshooting
 
 -Arduino connection error
 -Verify the COM port.
@@ -260,7 +92,7 @@ Noisy or unexpected Kalman output
 -Tune the noise covariance matrices using measured sensor data.
 -Confirm that the accelerometer measurement model is physically consistent with the state variables being estimated.
 
-10. Project Limitations and Future Improvements
+7. Project Limitations and Future Improvements
 
 Possible improvements include:
 
@@ -273,7 +105,7 @@ Possible improvements include:
 -Improving the 3D aircraft geometry and adding flight-path visualization.
 -Logging sensor measurements and estimated states for offline analysis.
 
-11. Summary
+8. Summary
 
 This project demonstrates the integration of Arduino-based IMU acquisition with MATLAB signal processing, a discrete-time Kalman predictor/filter, and real-time 3D aircraft attitude visualization.
 
